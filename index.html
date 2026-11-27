@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comcord — Reuniões Interdepartamentos</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e293b">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Comcord">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{
+  --bg:#f3f5f8; --card:#fff; --line:#e1e5eb; --txt:#1f2937; --muted:#6b7280;
+  --side:#1e293b; --side2:#334155; --acc:#2563eb; --acc2:#1d4ed8;
+  --aberto:#2563eb; --curso:#d97706; --fechado:#16a34a; --atraso:#dc2626;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--side);color:#cbd5e1;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0}
+.brand{padding:20px 18px;font-size:22px;font-weight:700;color:#fff;border-bottom:1px solid var(--side2)}
+.brand span{color:#60a5fa}
+.brand small{display:block;font-size:11px;font-weight:400;color:#94a3b8;margin-top:4px}
+.sidebar nav{padding:10px 0;flex:1}
+.sidebar nav a{display:block;padding:11px 18px;cursor:pointer;color:#cbd5e1;text-decoration:none;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--side2)}
+.sidebar nav a.active{background:var(--side2);color:#fff;border-left-color:#60a5fa}
+.mode{padding:12px 18px;font-size:11px;color:#94a3b8;border-top:1px solid var(--side2)}
+.mode b{color:#fff}
+.main{margin-left:220px;flex:1;padding:22px 26px 40px;min-width:0}
+.page{display:none}.page.active{display:block}
+h1{font-size:21px;margin:0 0 16px}
+h2{font-size:15px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;border-top:4px solid var(--muted)}
+.kpi:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.kpi .n{font-size:28px;font-weight:700}
+.kpi .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.kpi.ab{border-top-color:var(--aberto)}.kpi.ec{border-top-color:var(--curso)}.kpi.fe{border-top-color:var(--fechado)}.kpi.at{border-top-color:var(--atraso)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar .sp{flex:1}
+input,select,textarea{font:inherit;padding:7px 9px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:var(--txt)}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid #93c5fd;border-color:var(--acc)}
+.btn{font:inherit;padding:7px 13px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;white-space:nowrap}
+.btn:hover{background:#f1f5f9}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}.btn.pri:hover{background:var(--acc2)}
+.btn.dan{color:var(--atraso);border-color:#fca5a5}.btn.dan:hover{background:#fef2f2}
+.btn.sm{padding:4px 9px;font-size:12px}
+.table-wrap{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:calc(100vh - 190px)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:#f8fafc;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;white-space:nowrap}
+th.nosort{cursor:default}
+th .arr{font-size:10px;margin-left:3px}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:#f8fafc}
+tr.late td:first-child{box-shadow:inset 3px 0 0 var(--atraso)}
+td.muted,.muted{color:var(--muted)}
+#tbl{table-layout:fixed;min-width:980px}
+#tbl td.est{white-space:normal}
+#tbl td.est .badge{margin:1px 2px 1px 0}
+#tbl td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.trunc{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tbl td.ult{white-space:normal;max-width:none;font-size:12px}
+#tbl td.ult div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sub{font-size:11px;color:var(--muted)}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap}
+.b-Aberto{background:#dbeafe;color:var(--aberto)}
+.b-Em{background:#fef3c7;color:#b45309}
+.b-Fechado{background:#dcfce7;color:#15803d}
+.b-late{background:#fee2e2;color:var(--atraso)}
+.p-Alta{color:var(--atraso);font-weight:600}.p-Baixa{color:var(--muted)}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.bar{display:flex;height:16px;border-radius:4px;overflow:hidden;background:#eef2f7;min-width:120px}
+.bar div{height:100%}
+.list-item{padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.list-item:last-child{border-bottom:none}
+.list-item:hover{background:#f8fafc}
+.list-item .t{font-weight:600}
+.list-item .s{font-size:12px;color:var(--muted)}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;z-index:50;overflow:auto;padding:30px 12px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:900px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal-h h2{margin:0;flex:1}
+.modal-b{padding:16px 18px}
+.modal-f{display:flex;flex-wrap:wrap;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.modal-f .sp{flex:1}
+.x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600}
+.form .c2{grid-column:span 2}.form .c4{grid-column:1/-1}
+.obs-box{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}
+.obs-add{display:grid;grid-template-columns:140px 180px 1fr auto;gap:8px;align-items:start;margin-bottom:12px}
+.obs{border-left:3px solid #93c5fd;background:#f8fafc;padding:8px 12px;margin-bottom:8px;border-radius:0 6px 6px 0;position:relative}
+.obs .meta{font-size:12px;color:var(--muted);margin-bottom:3px}
+.obs .txt{white-space:pre-wrap}
+.obs .del{position:absolute;top:6px;right:8px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:16px}
+.obs .del:hover{color:var(--atraso)}
+.obs.pend{border-left-color:#fbbf24}
+/* atas */
+.form .c3{grid-column:span 3}
+.form .lbl{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label.chip{flex-direction:row;align-items:center;gap:5px;border:1px solid #cbd5e1;border-radius:14px;padding:3px 10px;font-weight:400;color:var(--txt);cursor:pointer;font-size:13px}
+.chips label.chip.on{background:#dbeafe;border-color:#93c5fd}
+.chips label.chip input{margin:0}
+.ata-top{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:#fcfdfe}
+.ata-top.novo{border-color:#93c5fd;background:#f5f9ff}
+.ata-top .hd{display:flex;gap:8px;align-items:baseline;margin-bottom:8px}
+.ata-top .hd .t{flex:1}
+.ata-top .grid{display:grid;grid-template-columns:130px 140px 1fr;gap:8px;align-items:start}
+.ata-top .gnovo{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.ata-tag{display:inline-block;background:#ede9fe;color:#6d28d9;border-radius:8px;padding:0 7px;font-size:11px;font-weight:600;cursor:pointer;margin-left:4px}
+/* config */
+.cfg-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.cfg-row input[type=text],.cfg-row input:not([type]){flex:1;min-width:0}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 18px;border-radius:8px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:99}
+#toast.show{opacity:1}#toast.err{background:var(--atraso)}
+.bottom-nav{display:none}
+#print-area{display:none}
+@media (max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:14px 12px 80px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .grid2{grid-template-columns:1fr}
+  .form{grid-template-columns:1fr 1fr}
+  .obs-add{grid-template-columns:1fr 1fr}
+  .obs-add textarea{grid-column:1/-1}
+  .form .c3{grid-column:1/-1}
+  .ata-top .grid,.ata-top .gnovo{grid-template-columns:1fr 1fr}
+  .ata-top .grid textarea,.ata-top .gnovo input:first-child{grid-column:1/-1}
+  .table-wrap{max-height:calc(100vh - 250px)}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--side);z-index:40}
+  .bottom-nav a{flex:1;text-align:center;padding:10px 4px;color:#cbd5e1;font-size:12px;cursor:pointer}
+  .bottom-nav a.active{color:#fff;background:var(--side2)}
+  .hide-m{display:none}
+}
+@media print{
+  body{background:#fff}
+  body > *:not(#print-area){display:none !important}
+  #print-area{display:block;font-size:12px;color:#000}
+  #print-area h1{font-size:18px;margin:0 0 4px}
+  #print-area table{border-collapse:collapse;width:100%}
+  #print-area th,#print-area td{border:1px solid #999;padding:5px 7px;position:static;background:none;color:#000;text-transform:none;font-size:11px}
+  #print-area .pgrp{page-break-inside:avoid;margin-top:14px}
+  #print-area .notes{border-bottom:1px dotted #777;height:18px}
+  @page{margin:14mm}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">Com<span>cord</span><small>Reuniões interdepartamentos</small></div>
+    <nav>
+      <a data-page="dashboard" class="active">📊 Dashboard</a>
+      <a data-page="topicos">💬 Tópicos</a>
+      <a data-page="atas">📋 Atas</a>
+      <a data-page="config">⚙️ Configurações</a>
+    </nav>
+    <div class="mode" id="mode-badge"></div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="toolbar"><h1 style="margin:0">Dashboard</h1><span class="sp"></span>
+        <button class="btn" onclick="openAta()">+ Nova ata</button>
+        <button class="btn pri" onclick="openTopico()">+ Novo tópico</button></div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid2">
+        <div class="card"><h2>Por departamento responsável</h2><div id="dash-deps"></div></div>
+        <div class="card"><h2>⚠️ Tópicos em atraso</h2><div id="dash-late"></div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h2>Últimos follow-ups</h2><div id="dash-obs"></div></div>
+        <div class="card"><h2>📋 Reuniões</h2><div id="dash-atas"></div></div>
+      </div>
+    </section>
+
+    <!-- TÓPICOS -->
+    <section id="page-topicos" class="page">
+      <div class="toolbar">
+        <h1 style="margin:0">Tópicos de discussão</h1><span class="sp"></span>
+        <button class="btn" onclick="printAgenda()" title="Imprime a lista filtrada como ordem de trabalhos da reunião">🖨️ Ordem de trabalhos</button>
+        <button class="btn hide-m" onclick="exportCSV()">⬇️ Exportar Excel</button>
+        <button class="btn pri" onclick="openTopico()">+ Novo tópico</button>
+      </div>
+      <div class="toolbar">
+        <input id="f-search" placeholder="🔍 Pesquisar…" style="min-width:200px">
+        <select id="f-estado">
+          <option value="ativos">Ativos (aberto + em curso)</option>
+          <option value="">Todos os estados</option>
+          <option>Aberto</option><option>Em curso</option><option>Fechado</option>
+          <option value="atraso">Em atraso</option>
+        </select>
+        <select id="f-dep"></select>
+        <select id="f-resp"></select>
+        <button class="btn sm" onclick="clearFilters()">✕ Limpar filtros</button>
+        <span class="sp"></span><span class="muted" id="count"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl"><thead><tr id="tbl-head"></tr></thead><tbody id="tbl-body"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ATAS -->
+    <section id="page-atas" class="page">
+      <div class="toolbar">
+        <h1 style="margin:0">Atas de reunião</h1><span class="sp"></span>
+        <button class="btn pri" onclick="openAta()">+ Nova ata</button>
+      </div>
+      <div class="toolbar">
+        <input id="fa-search" placeholder="🔍 Pesquisar…" style="min-width:200px">
+        <select id="fa-ano"></select>
+        <span class="sp"></span><span class="muted" id="fa-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="tbl-atas"><thead><tr id="atas-head"></tr></thead><tbody id="atas-body"></tbody></table>
+      </div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="page-config" class="page">
+      <h1>Configurações</h1>
+      <div class="grid2">
+        <div class="card"><h2>Departamentos</h2>
+          <div id="cfg-deps"></div>
+          <div class="cfg-row" style="margin-top:10px"><input id="new-dep" placeholder="Novo departamento"><button class="btn pri sm" onclick="addDep()">Adicionar</button></div>
+        </div>
+        <div class="card"><h2>Pessoas / participantes</h2>
+          <p class="muted" style="margin-top:-6px;font-size:12px">Aparecem como sugestão nos campos "Criado por", "Responsável" e "Autor". O email é usado no envio do tópico.</p>
+          <div id="cfg-pes"></div>
+          <div class="cfg-row" style="margin-top:10px;flex-wrap:wrap">
+            <input id="new-pes-nome" placeholder="Nome">
+            <select id="new-pes-dep"></select>
+            <input id="new-pes-email" placeholder="Email">
+            <button class="btn pri sm" onclick="addPessoa()">Adicionar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="bottom-nav">
+  <a data-page="dashboard" class="active">📊<br>Dashboard</a>
+  <a data-page="topicos">💬<br>Tópicos</a>
+  <a data-page="atas">📋<br>Atas</a>
+  <a data-page="config">⚙️<br>Config.</a>
+</nav>
+
+<!-- MODAL TÓPICO -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-h">
+      <h2 id="m-title">Novo tópico</h2>
+      <span id="m-badge"></span>
+      <button class="btn sm" id="m-prev" onclick="navTopico(-1)" title="Anterior">◀</button>
+      <button class="btn sm" id="m-next" onclick="navTopico(1)" title="Seguinte">▶</button>
+      <button class="x" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-b">
+      <div class="form">
+        <label class="c4">Tópico / assunto *<input id="t-titulo" maxlength="200"></label>
+        <label class="c4">Descrição<textarea id="t-descricao" rows="3"></textarea></label>
+        <label>Estado<select id="t-estado"><option>Aberto</option><option>Em curso</option><option>Fechado</option></select></label>
+        <label>Prioridade<select id="t-prioridade"><option>Baixa</option><option selected>Média</option><option>Alta</option></select></label>
+        <label>Data de início<input type="date" id="t-inicio"></label>
+        <label>Data de fim<input type="date" id="t-fim"></label>
+        <label>Criado por<input id="t-criado" list="dl-pessoas"></label>
+        <label>Departamento de origem<select id="t-dep-origem"></select></label>
+        <label>Quem executa (responsável)<input id="t-resp" list="dl-pessoas"></label>
+        <label>Departamento responsável<select id="t-dep-resp"></select></label>
+      </div>
+
+      <div class="obs-box">
+        <h2>Observações / follow-up</h2>
+        <div class="obs-add">
+          <input type="date" id="o-data">
+          <input id="o-autor" placeholder="Autor" list="dl-pessoas">
+          <textarea id="o-texto" rows="2" placeholder="Ponto de situação, decisão tomada, próximo passo…"></textarea>
+          <button class="btn pri" onclick="addObs()">+ Adicionar</button>
+        </div>
+        <div id="obs-list"></div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn dan" id="m-del" onclick="deleteTopico()">🗑️ Eliminar</button>
+      <button class="btn" id="m-print" onclick="printTopico()">🖨️ Imprimir</button>
+      <button class="btn" id="m-mail" onclick="mailTopico()">✉️ Enviar por email</button>
+      <span class="sp"></span>
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn pri" onclick="saveTopico()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ATA -->
+<div class="modal-bg" id="modal-ata">
+  <div class="modal" style="max-width:1000px">
+    <div class="modal-h">
+      <h2 id="a-title">Nova ata</h2>
+      <button class="x" onclick="closeAta()">×</button>
+    </div>
+    <div class="modal-b">
+      <div class="form">
+        <label>Data da reunião *<input type="date" id="a-data"></label>
+        <label class="c2">Título<input id="a-titulo" maxlength="200"></label>
+        <label>Local<input id="a-local"></label>
+        <div class="c4"><div class="lbl">Participantes</div><div class="chips" id="a-part"></div></div>
+        <label class="c3">Outros participantes (separados por vírgula)<input id="a-outros"></label>
+        <label>Próxima reunião<input type="date" id="a-proxima"></label>
+        <label class="c4">Notas gerais<textarea id="a-notas" rows="2" placeholder="Informações gerais, ausências, assuntos fora da ordem de trabalhos…"></textarea></label>
+      </div>
+      <div class="obs-box">
+        <div class="toolbar" style="margin-bottom:8px">
+          <h2 style="margin:0">Tópicos discutidos</h2><span class="sp"></span>
+          <select id="a-add-sel" style="max-width:320px"></select>
+          <button class="btn sm" onclick="ataAddSel()">Adicionar</button>
+          <button class="btn sm" onclick="ataAddAtivos()" title="Adiciona todos os tópicos abertos e em curso">⬇ Todos os ativos</button>
+          <button class="btn sm pri" onclick="ataAddNovo()">+ Novo tópico</button>
+        </div>
+        <div id="a-tops"></div>
+      </div>
+    </div>
+    <div class="modal-f">
+      <button class="btn dan" id="a-del" onclick="deleteAta()">🗑️ Eliminar</button>
+      <button class="btn" onclick="printAta()">🖨️ Imprimir ata</button>
+      <button class="btn" onclick="mailAta()">✉️ Enviar aos participantes</button>
+      <span class="sp"></span>
+      <button class="btn" onclick="closeAta()">Cancelar</button>
+      <button class="btn pri" onclick="saveAta()">💾 Guardar ata</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="dl-pessoas"></datalist>
+<div id="print-area"></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO SUPABASE
+   Deixe em branco para trabalhar em MODO LOCAL (dados guardados só neste
+   browser — útil para testar). Preencha para usar a base de dados partilhada.
+   ===================================================================== */
+const SUPABASE_URL = 'https://kgjuvlpgserldhaxtkle.supabase.co/rest/v1/';   // ex.: 'https://xxxxxxxx.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_sttUwrUK0yOldwzKOO0mag_zPfOopr3';   // chave "anon public"
+
+const TABLE_PREFIX = 'cc_'; // tabelas do Comcord no Supabase: cc_topicos, cc_reunioes, … (partilha o projeto com o AdegaPlan)
+
+const REMOTE = !!(SUPABASE_URL && SUPABASE_KEY);
+const LS_PREFIX = 'comcord_';
+
+/* ---------------- Camada de dados (Supabase REST ou localStorage) ---------------- */
+const DB = {
+  h(){ return {apikey:SUPABASE_KEY, Authorization:'Bearer '+SUPABASE_KEY, 'Content-Type':'application/json', Prefer:'return=representation'}; },
+  url(t,q){ return SUPABASE_URL.replace(/\/+$/,'').replace(/\/rest\/v1$/,'')+'/rest/v1/'+TABLE_PREFIX+t+(q||''); },
+  ls(t){ try{ return JSON.parse(localStorage.getItem(LS_PREFIX+t)||'[]'); }catch(e){ return []; } },
+  lsSave(t,a){ try{ localStorage.setItem(LS_PREFIX+t, JSON.stringify(a)); }catch(e){ toast('Não foi possível gravar localmente: '+e.message,true); } },
+  async req(method,t,q,body){
+    const r = await fetch(this.url(t,q),{method,headers:this.h(),body:body?JSON.stringify(body):undefined});
+    if(!r.ok){ let m=await r.text(); try{ m=JSON.parse(m).message||m; }catch(e){} throw new Error(m); }
+    const txt = await r.text(); return txt ? JSON.parse(txt) : null;
+  },
+  async list(t){
+    if(REMOTE) return this.req('GET',t,'?select=*&order=id.asc');
+    return this.ls(t);
+  },
+  async insert(t,row){
+    if(REMOTE) return (await this.req('POST',t,'',row))[0];
+    const a=this.ls(t); const id=a.reduce((m,x)=>Math.max(m,x.id),0)+1;
+    const n={...row,id,created_at:new Date().toISOString()}; a.push(n); this.lsSave(t,a); return n;
+  },
+  async update(t,id,patch){
+    if(REMOTE) return (await this.req('PATCH',t,'?id=eq.'+id,patch))[0];
+    const a=this.ls(t); const i=a.findIndex(x=>x.id===id); if(i<0) return null;
+    a[i]={...a[i],...patch}; this.lsSave(t,a); return a[i];
+  },
+  async remove(t,id){
+    if(REMOTE) return this.req('DELETE',t,'?id=eq.'+id);
+    this.lsSave(t,this.ls(t).filter(x=>x.id!==id));
+  },
+  async updateWhere(t,field,val,patch){
+    if(REMOTE) return this.req('PATCH',t,'?'+field+'=eq.'+val,patch);
+    this.lsSave(t,this.ls(t).map(x=>x[field]===val?{...x,...patch}:x));
+  },
+  async removeWhere(t,field,val){
+    if(REMOTE) return this.req('DELETE',t,'?'+field+'=eq.'+val);
+    this.lsSave(t,this.ls(t).filter(x=>x[field]!==val));
+  }
+};
+
+/* ---------------- Estado ---------------- */
+const S = {deps:[], pessoas:[], topicos:[], obs:[], reunioes:[], rt:[]};
+let sort = {key:'ref', dir:-1};
+let current = null;        // tópico aberto no modal (null = novo)
+let pendingObs = [];       // follow-ups de um tópico ainda não gravado
+let visibleIds = [];       // ordem da lista filtrada (para ◀ ▶)
+
+/* ---------------- Utilitários ---------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+const fmt = d => d ? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4) : '';
+const depName = id => (S.deps.find(d=>d.id===Number(id))||{}).nome || '';
+const isLate = t => t.estado!=='Fechado' && t.data_fim && t.data_fim < today();
+const obsOf = id => S.obs.filter(o=>o.topico_id===id).sort((a,b)=> (b.data||'').localeCompare(a.data||'') || b.id-a.id);
+const lastObs = id => obsOf(id)[0];
+const badge = e => `<span class="badge b-${esc((e||'').split(' ')[0])}">${esc(e)}</span>`;
+const lateBadge = t => isLate(t) ? '<span class="badge b-late">Em atraso</span>' : '';
+function toast(msg,err){ const t=$('toast'); t.textContent=msg; t.className='show'+(err?' err':''); clearTimeout(t._h); t._h=setTimeout(()=>t.className='',err?4500:2200); }
+function nz(v){ v=(v??'').toString().trim(); return v===''?null:v; }
+
+/* ---------------- Carregar ---------------- */
+const DEFAULT_DEPS = ['Administração','Produção / Adega','Engarrafamento','Manutenção','Qualidade','Logística / Armazém','Compras','Comercial','Recursos Humanos','Segurança e Ambiente'];
+
+async function loadAll(){
+  try{
+    if(!REMOTE && !localStorage.getItem(LS_PREFIX+'departamentos')){
+      DB.lsSave('departamentos', DEFAULT_DEPS.map((n,i)=>({id:i+1,nome:n,ativo:true})));
+    }
+    const [deps,pes,top,obs,reu,rt] = await Promise.all(['departamentos','pessoas','topicos','observacoes','reunioes','reuniao_topicos'].map(t=>DB.list(t)));
+    S.reunioes=reu; S.rt=rt;
+    S.deps=deps.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); S.pessoas=pes.sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+    S.topicos=top; S.obs=obs;
+  }catch(e){ toast('Erro ao carregar dados: '+e.message,true); console.error(e); }
+  renderAll();
+}
+
+function renderAll(){ fillSelects(); renderDashboard(); renderTable(); renderAtas(); renderConfig(); }
+
+function depOptions(first){ return `<option value="">${first}</option>`+S.deps.map(d=>`<option value="${d.id}">${esc(d.nome)}</option>`).join(''); }
+
+function fillSelects(){
+  const keep = (id,html)=>{ const el=$(id), v=el.value; el.innerHTML=html; el.value=v; if(el.value!==v) el.value=''; };
+  keep('f-dep', depOptions('Todos os departamentos'));
+  const resps=[...new Set(S.topicos.map(t=>t.responsavel).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt'));
+  keep('f-resp', '<option value="">Todos os responsáveis</option>'+resps.map(r=>`<option>${esc(r)}</option>`).join(''));
+  keep('t-dep-origem', depOptions('—')); keep('t-dep-resp', depOptions('—')); keep('new-pes-dep', depOptions('Departamento…'));
+  $('dl-pessoas').innerHTML = S.pessoas.map(p=>`<option value="${esc(p.nome)}">${esc(depName(p.departamento_id))}</option>`).join('');
+}
+
+/* ---------------- Navegação ---------------- */
+function go(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='page-'+page));
+  document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===page));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('[data-page]').forEach(a=>a.onclick=()=>go(a.dataset.page));
+
+/* ---------------- Dashboard ---------------- */
+function renderDashboard(){
+  const T=S.topicos;
+  const c={total:T.length, ab:T.filter(t=>t.estado==='Aberto').length, ec:T.filter(t=>t.estado==='Em curso').length,
+           fe:T.filter(t=>t.estado==='Fechado').length, at:T.filter(isLate).length};
+  $('kpis').innerHTML = [
+    ['','Total',c.total,''],['ab','Abertos',c.ab,'Aberto'],['ec','Em curso',c.ec,'Em curso'],
+    ['fe','Fechados',c.fe,'Fechado'],['at','Em atraso',c.at,'atraso']
+  ].map(([cl,l,n,f])=>`<div class="kpi ${cl}" onclick="kpiGo('${f}')"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+
+  // por departamento responsável
+  const groups={}; T.forEach(t=>{ const k=t.departamento_resp_id||0; (groups[k]=groups[k]||[]).push(t); });
+  const keys=Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+  $('dash-deps').innerHTML = keys.length ? `<table><thead><tr><th class="nosort">Departamento</th><th class="nosort">Ab.</th><th class="nosort">Em curso</th><th class="nosort">Fech.</th><th class="nosort" style="width:40%"></th></tr></thead><tbody>`+
+    keys.map(k=>{ const g=groups[k], n=g.length, a=g.filter(t=>t.estado==='Aberto').length, e=g.filter(t=>t.estado==='Em curso').length, f=n-a-e;
+      return `<tr class="click" onclick="depGo('${k}')"><td>${esc(depName(k)||'Sem departamento')}</td><td>${a}</td><td>${e}</td><td>${f}</td>
+      <td><div class="bar"><div style="width:${a/n*100}%;background:var(--aberto)"></div><div style="width:${e/n*100}%;background:var(--curso)"></div><div style="width:${f/n*100}%;background:var(--fechado)"></div></div></td></tr>`;}).join('')+'</tbody></table>'
+    : '<div class="empty">Ainda não há tópicos.</div>';
+
+  const late=T.filter(isLate).sort((a,b)=>a.data_fim.localeCompare(b.data_fim));
+  $('dash-late').innerHTML = late.length ? late.slice(0,10).map(t=>`<div class="list-item" onclick="openTopico(${t.id})">
+      <div class="t">${esc(t.ref)} · ${esc(t.titulo)}</div>
+      <div class="s">Fim previsto ${fmt(t.data_fim)} · ${esc(t.responsavel||'sem responsável')}${t.departamento_resp_id?' ('+esc(depName(t.departamento_resp_id))+')':''}</div></div>`).join('')
+    + (late.length>10?`<div class="s muted" style="padding-top:8px">+ ${late.length-10} …</div>`:'')
+    : '<div class="empty">Sem tópicos em atraso 👍</div>';
+
+  const rec=[...S.obs].sort((a,b)=>(b.data||'').localeCompare(a.data||'')||b.id-a.id).slice(0,8);
+  $('dash-obs').innerHTML = rec.length ? rec.map(o=>{ const t=S.topicos.find(x=>x.id===o.topico_id); if(!t) return '';
+      return `<div class="list-item" onclick="openTopico(${t.id})"><div class="s">${fmt(o.data)}${o.autor?' · '+esc(o.autor):''}${o.reuniao_id?' · 📋 '+esc((S.reunioes.find(r=>r.id===o.reuniao_id)||{}).ref||''):''} · <b>${esc(t.ref)} ${esc(t.titulo)}</b></div><div>${esc(o.texto)}</div></div>`;}).join('')
+    : '<div class="empty">Ainda não há follow-ups.</div>';
+  const ord=[...S.reunioes].sort((a,b)=>(b.data||'').localeCompare(a.data||'')||b.id-a.id);
+  const prox=S.reunioes.map(r=>r.proxima_data).filter(d=>d&&d>=today()).sort()[0];
+  $('dash-atas').innerHTML = (prox?`<div style="padding:4px 0 10px"><b>Próxima reunião:</b> ${fmt(prox)}</div>`:'') +
+    (ord.length ? ord.slice(0,6).map(r=>{ const n=S.rt.filter(x=>x.reuniao_id===r.id).length;
+      return `<div class="list-item" onclick="openAta(${r.id})"><div class="t">${esc(r.ref)} · ${fmt(r.data)}</div><div class="s">${esc(r.titulo||'')}${r.local?' · '+esc(r.local):''} · ${n} tópico${n===1?'':'s'}</div></div>`;}).join('')
+    : '<div class="empty">Ainda não há atas.</div>');
+}
+function kpiGo(f){ clearFilters(false); $('f-estado').value=f; renderTable(); go('topicos'); }
+function depGo(k){ clearFilters(false); $('f-estado').value=''; $('f-dep').value=k==='0'?'':k; renderTable(); go('topicos'); }
+
+/* ---------------- Tabela de tópicos ---------------- */
+const COLW = {ref:'13%',titulo:'19%',criado_por:'11%',responsavel:'11%',data_inicio:'9.5%',data_fim:'9.5%',estado:'11%',ult:'16%'};
+const COLS = [
+  ['ref','Ref.'],['titulo','Tópico'],['criado_por','Criado por'],
+  ['responsavel','Quem executa'],['data_inicio','Início'],['data_fim','Fim'],
+  ['estado','Estado'],['ult','Último follow-up']
+];
+function colVal(t,k){
+  if(k==='dep_origem') return depName(t.departamento_origem_id);
+  if(k==='dep_resp') return depName(t.departamento_resp_id);
+  if(k==='ult'){ const o=lastObs(t.id); return o?o.data:''; }
+  return t[k]??'';
+}
+function filtered(){
+  const q=$('f-search').value.trim().toLowerCase(), e=$('f-estado').value, d=$('f-dep').value, r=$('f-resp').value;
+  return S.topicos.filter(t=>{
+    if(e==='ativos' && t.estado==='Fechado') return false;
+    if(e==='atraso' && !isLate(t)) return false;
+    if(e && !['ativos','atraso'].includes(e) && t.estado!==e) return false;
+    if(d && String(t.departamento_origem_id)!==d && String(t.departamento_resp_id)!==d) return false;
+    if(r && t.responsavel!==r) return false;
+    if(q){ const hay=[t.ref,t.titulo,t.descricao,t.criado_por,t.responsavel,depName(t.departamento_origem_id),depName(t.departamento_resp_id),...obsOf(t.id).map(o=>o.texto)].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>{ const va=colVal(a,sort.key), vb=colVal(b,sort.key);
+    return (typeof va==='number'&&typeof vb==='number' ? va-vb : String(va).localeCompare(String(vb),'pt',{numeric:true})) * sort.dir; });
+}
+function renderTable(){
+  $('tbl-head').innerHTML = COLS.map(([k,l])=>`<th style="width:${COLW[k]||'auto'}" onclick="setSort('${k}')">${l}${sort.key===k?`<span class="arr">${sort.dir>0?'▲':'▼'}</span>`:''}</th>`).join('');
+  const rows=filtered(); visibleIds=rows.map(t=>t.id);
+  $('count').textContent = rows.length+' de '+S.topicos.length+' tópicos';
+  $('tbl-body').innerHTML = rows.length ? rows.map(t=>{ const o=lastObs(t.id);
+    return `<tr class="click${isLate(t)?' late':''}" onclick="openTopico(${t.id})">
+      <td><b>${esc(t.ref)}</b></td>
+      <td class="trunc" title="${esc(t.titulo)}">${esc(t.titulo)} ${t.prioridade==='Alta'?'<span class="p-Alta">●</span>':''}</td>
+      <td>${esc(t.criado_por||'')}<div class="sub">${esc(depName(t.departamento_origem_id))}</div></td>
+      <td>${esc(t.responsavel||'')}<div class="sub">${esc(depName(t.departamento_resp_id))}</div></td>
+      <td>${fmt(t.data_inicio)}</td><td>${fmt(t.data_fim)}</td>
+      <td class="est">${badge(t.estado)}${lateBadge(t)}</td>
+      <td class="ult muted" title="${o?esc(o.texto):''}"><div>${o?'<b>'+fmt(o.data)+'</b> — '+esc(o.texto):''}</div></td></tr>`;}).join('')
+    : `<tr><td colspan="${COLS.length}" class="empty">Nenhum tópico encontrado.</td></tr>`;
+}
+function setSort(k){ sort = sort.key===k ? {key:k,dir:-sort.dir} : {key:k,dir:1}; renderTable(); }
+function clearFilters(render=true){ $('f-search').value=''; $('f-estado').value='ativos'; $('f-dep').value=''; $('f-resp').value=''; if(render) renderTable(); }
+['f-search','f-estado','f-dep','f-resp'].forEach(id=>$(id).addEventListener(id==='f-search'?'input':'change',renderTable));
+
+/* ---------------- Modal tópico ---------------- */
+function openTopico(id){
+  current = id ? S.topicos.find(t=>t.id===id) : null;
+  pendingObs=[];
+  const t=current||{estado:'Aberto',prioridade:'Média',data_inicio:today()};
+  $('m-title').textContent = current ? current.ref+' — Tópico' : 'Novo tópico';
+  $('m-badge').innerHTML = current ? badge(current.estado)+lateBadge(current) : '';
+  $('t-titulo').value=t.titulo||''; $('t-descricao').value=t.descricao||'';
+  $('t-estado').value=t.estado||'Aberto'; $('t-prioridade').value=t.prioridade||'Média';
+  $('t-inicio').value=t.data_inicio||''; $('t-fim').value=t.data_fim||'';
+  $('t-criado').value=t.criado_por||''; $('t-resp').value=t.responsavel||'';
+  $('t-dep-origem').value=t.departamento_origem_id||''; $('t-dep-resp').value=t.departamento_resp_id||'';
+  $('o-data').value=today(); $('o-texto').value='';
+  ['m-del','m-print','m-mail'].forEach(b=>$(b).style.display=current?'':'none');
+  const i=current?visibleIds.indexOf(current.id):-1;
+  $('m-prev').style.display=$('m-next').style.display = i>=0 && visibleIds.length>1 ? '' : 'none';
+  renderObs();
+  $('modal').classList.add('show');
+  if(!current) setTimeout(()=>$('t-titulo').focus(),50);
+}
+function closeModal(){ $('modal').classList.remove('show'); current=null; pendingObs=[]; }
+function navTopico(d){ if(!current) return; const i=visibleIds.indexOf(current.id); const n=visibleIds[i+d]; if(n!=null) openTopico(n); }
+document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return;
+  if($('modal').classList.contains('show')) closeModal(); else if($('modal-ata').classList.contains('show')) closeAta(); });
+
+function renderObs(){
+  const list = current ? obsOf(current.id) : [...pendingObs].sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+  $('obs-list').innerHTML = list.length ? list.map((o,i)=>`<div class="obs${current?'':' pend'}">
+      <button class="del" title="Eliminar" onclick="delObs(${current?o.id:'null'},${i})">×</button>
+      <div class="meta"><b>${fmt(o.data)}</b>${o.autor?' · '+esc(o.autor):''}${current?'':' · (por gravar)'}${ataTag(o.reuniao_id)}</div>
+      <div class="txt">${esc(o.texto)}</div></div>`).join('')
+    : '<div class="muted" style="padding:6px 0">Sem observações registadas.</div>';
+}
+async function addObs(){
+  const texto=$('o-texto').value.trim(); if(!texto){ toast('Escreva a observação.',true); $('o-texto').focus(); return; }
+  const o={data:$('o-data').value||today(), autor:nz($('o-autor').value), texto};
+  if(!current){ pendingObs.push(o); $('o-texto').value=''; renderObs(); return; }
+  try{
+    const n=await DB.insert('observacoes',{...o,topico_id:current.id}); S.obs.push(n);
+    await DB.update('topicos',current.id,{updated_at:new Date().toISOString()});
+    $('o-texto').value=''; renderObs(); renderDashboard(); renderTable(); toast('Follow-up adicionado');
+  }catch(e){ toast('Erro: '+e.message,true); }
+}
+async function delObs(id,idx){
+  if(!current){ const sorted=[...pendingObs].sort((a,b)=>(b.data||'').localeCompare(a.data||'')); pendingObs=pendingObs.filter(o=>o!==sorted[idx]); renderObs(); return; }
+  if(!confirm('Eliminar esta observação?')) return;
+  try{ await DB.remove('observacoes',id); S.obs=S.obs.filter(o=>o.id!==id); renderObs(); renderDashboard(); renderTable(); }
+  catch(e){ toast('Erro: '+e.message,true); }
+}
+
+function nextRef(prefix='TOP',list=S.topicos){
+  const y=new Date().getFullYear(), pre=prefix+'-'+y+'-';
+  const max=list.filter(t=>(t.ref||'').startsWith(pre)).reduce((m,t)=>Math.max(m,parseInt(t.ref.slice(pre.length))||0),0);
+  return pre+String(max+1).padStart(3,'0');
+}
+async function saveTopico(){
+  const titulo=$('t-titulo').value.trim();
+  if(!titulo){ toast('Indique o tópico / assunto.',true); $('t-titulo').focus(); return; }
+  const row={
+    titulo, descricao:nz($('t-descricao').value), estado:$('t-estado').value, prioridade:$('t-prioridade').value,
+    data_inicio:nz($('t-inicio').value), data_fim:nz($('t-fim').value),
+    criado_por:nz($('t-criado').value), responsavel:nz($('t-resp').value),
+    departamento_origem_id:$('t-dep-origem').value?Number($('t-dep-origem').value):null,
+    departamento_resp_id:$('t-dep-resp').value?Number($('t-dep-resp').value):null,
+    updated_at:new Date().toISOString()
+  };
+  if(row.data_inicio && row.data_fim && row.data_fim<row.data_inicio){ toast('A data de fim é anterior à data de início.',true); return; }
+  if(row.estado==='Fechado' && !row.data_fim) row.data_fim=today();
+  // texto escrito no follow-up mas não adicionado → adiciona automaticamente
+  const pendTxt=$('o-texto').value.trim();
+  try{
+    let saved;
+    if(current){
+      saved=await DB.update('topicos',current.id,row);
+      Object.assign(current,saved||row);
+      if(pendTxt){ const n=await DB.insert('observacoes',{topico_id:current.id,data:$('o-data').value||today(),autor:nz($('o-autor').value),texto:pendTxt}); S.obs.push(n); }
+    }else{
+      if(pendTxt) pendingObs.push({data:$('o-data').value||today(),autor:nz($('o-autor').value),texto:pendTxt});
+      saved=await DB.insert('topicos',{...row,ref:nextRef()}); S.topicos.push(saved);
+      for(const o of pendingObs){ const n=await DB.insert('observacoes',{...o,topico_id:saved.id}); S.obs.push(n); }
+    }
+    toast((current?'Tópico atualizado':'Tópico '+saved.ref+' criado'));
+    closeModal(); fillSelects(); renderDashboard(); renderTable();
+  }catch(e){ toast('Erro ao guardar: '+e.message,true); console.error(e); }
+}
+async function deleteTopico(){
+  if(!current) return;
+  if(!confirm(`Eliminar o tópico ${current.ref} e todas as suas observações?\nEsta ação não pode ser anulada.`)) return;
+  try{
+    await DB.removeWhere('observacoes','topico_id',current.id);
+    await DB.removeWhere('reuniao_topicos','topico_id',current.id);
+    await DB.remove('topicos',current.id);
+    S.rt=S.rt.filter(x=>x.topico_id!==current.id);
+    S.obs=S.obs.filter(o=>o.topico_id!==current.id); S.topicos=S.topicos.filter(t=>t.id!==current.id);
+    closeModal(); fillSelects(); renderDashboard(); renderTable(); toast('Tópico eliminado');
+  }catch(e){ toast('Erro: '+e.message,true); }
+}
+
+/* ---------------- Email ---------------- */
+function mailTopico(){
+  if(!current) return; const t=current;
+  const p=S.pessoas.find(p=>p.nome===t.responsavel);
+  const obs=obsOf(t.id).slice(0,8).map(o=>`  ${fmt(o.data)}${o.autor?' ('+o.autor+')':''}: ${o.texto}`).join('\n');
+  const body=[
+    `Tópico: ${t.ref} — ${t.titulo}`,'',
+    t.descricao?`Descrição: ${t.descricao}\n`:'',
+    `Estado: ${t.estado}${isLate(t)?' (EM ATRASO)':''}`,
+    `Prioridade: ${t.prioridade||''}`,
+    `Criado por: ${t.criado_por||''}${t.departamento_origem_id?' — '+depName(t.departamento_origem_id):''}`,
+    `Responsável: ${t.responsavel||''}${t.departamento_resp_id?' — '+depName(t.departamento_resp_id):''}`,
+    `Início: ${fmt(t.data_inicio)}   Fim: ${fmt(t.data_fim)}`,'',
+    obs?'Follow-up:\n'+obs:'Sem observações registadas.'
+  ].join('\n');
+  location.href=`mailto:${encodeURIComponent(p&&p.email?p.email:'')}?subject=${encodeURIComponent('['+t.ref+'] '+t.titulo)}&body=${encodeURIComponent(body)}`;
+}
+
+/* ---------------- Impressão ---------------- */
+function doPrint(html){ $('print-area').innerHTML=html; window.print(); }
+function printTopico(){
+  if(!current) return; const t=current;
+  const obs=obsOf(t.id).reverse();
+  doPrint(`<h1>${esc(t.ref)} — ${esc(t.titulo)}</h1><div style="margin-bottom:10px">Impresso em ${fmt(today())}</div>
+  <table><tr><th>Estado</th><td>${esc(t.estado)}${isLate(t)?' — EM ATRASO':''}</td><th>Prioridade</th><td>${esc(t.prioridade||'')}</td></tr>
+  <tr><th>Criado por</th><td>${esc(t.criado_por||'')}</td><th>Dep. origem</th><td>${esc(depName(t.departamento_origem_id))}</td></tr>
+  <tr><th>Responsável</th><td>${esc(t.responsavel||'')}</td><th>Dep. responsável</th><td>${esc(depName(t.departamento_resp_id))}</td></tr>
+  <tr><th>Data de início</th><td>${fmt(t.data_inicio)}</td><th>Data de fim</th><td>${fmt(t.data_fim)}</td></tr>
+  <tr><th>Descrição</th><td colspan="3" style="white-space:pre-wrap">${esc(t.descricao||'')}</td></tr></table>
+  <h3 style="margin-top:16px">Observações / follow-up</h3>
+  <table><tr><th style="width:80px">Data</th><th style="width:130px">Autor</th><th>Observação</th></tr>
+  ${obs.map(o=>`<tr><td>${fmt(o.data)}</td><td>${esc(o.autor||'')}</td><td style="white-space:pre-wrap">${esc(o.texto)}</td></tr>`).join('')}
+  <tr><td class="notes"></td><td></td><td></td></tr><tr><td class="notes"></td><td></td><td></td></tr></table>`);
+}
+function printAgenda(){
+  const rows=filtered(); if(!rows.length){ toast('Não há tópicos na lista filtrada.',true); return; }
+  const groups={}; rows.forEach(t=>{ const k=depName(t.departamento_resp_id)||'Sem departamento'; (groups[k]=groups[k]||[]).push(t); });
+  doPrint(`<h1>Reunião interdepartamentos — Ordem de trabalhos</h1><div>Data: ${fmt(today())} · ${rows.length} tópicos</div>`+
+    Object.keys(groups).sort((a,b)=>a.localeCompare(b,'pt')).map(k=>`<div class="pgrp"><h3 style="margin:0 0 6px">${esc(k)}</h3>
+    <table><tr><th style="width:95px;white-space:nowrap">Ref.</th><th>Tópico</th><th style="width:110px">Responsável</th><th style="width:70px">Fim</th><th style="width:70px">Estado</th><th style="width:32%">Último ponto de situação</th></tr>
+    ${groups[k].map(t=>{ const o=lastObs(t.id); return `<tr><td style="white-space:nowrap">${esc(t.ref)}</td><td>${esc(t.titulo)}</td><td>${esc(t.responsavel||'')}</td><td>${fmt(t.data_fim)}${isLate(t)?' ⚠':''}</td><td>${esc(t.estado)}</td><td>${o?fmt(o.data)+' — '+esc(o.texto):''}</td></tr>
+      <tr><td colspan="6" class="notes">Notas:</td></tr>`;}).join('')}</table></div>`).join(''));
+}
+
+/* ---------------- Exportar (CSV para Excel PT) ---------------- */
+function exportCSV(){
+  const rows=filtered();
+  const head=['Ref.','Tópico','Descrição','Estado','Em atraso','Prioridade','Criado por','Dep. origem','Responsável','Dep. responsável','Data início','Data fim','Último follow-up (data)','Último follow-up'];
+  const q=v=>'"'+String(v??'').replace(/"/g,'""').replace(/\r?\n/g,' ')+'"';
+  const lines=[head.map(q).join(';')].concat(rows.map(t=>{ const o=lastObs(t.id);
+    return [t.ref,t.titulo,t.descricao,t.estado,isLate(t)?'Sim':'',t.prioridade,t.criado_por,depName(t.departamento_origem_id),t.responsavel,depName(t.departamento_resp_id),fmt(t.data_inicio),fmt(t.data_fim),o?fmt(o.data):'',o?o.texto:''].map(q).join(';'); }));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Comcord_topicos_'+today()+'.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------------- Configurações ---------------- */
+function renderConfig(){
+  $('cfg-deps').innerHTML = S.deps.length ? S.deps.map(d=>{ const n=S.topicos.filter(t=>t.departamento_origem_id===d.id||t.departamento_resp_id===d.id).length;
+    return `<div class="cfg-row"><input value="${esc(d.nome)}" onchange="renDep(${d.id},this)"><span class="muted" style="font-size:12px;width:70px">${n} tópico${n===1?'':'s'}</span><button class="btn dan sm" onclick="delDep(${d.id})">🗑️</button></div>`;}).join('')
+    : '<div class="muted">Sem departamentos.</div>';
+  $('cfg-pes').innerHTML = S.pessoas.length ? S.pessoas.map(p=>`<div class="cfg-row">
+      <input value="${esc(p.nome)}" onchange="updPes(${p.id},'nome',this.value)">
+      <select onchange="updPes(${p.id},'departamento_id',this.value?Number(this.value):null)">${depOptions('—').replace(`value="${p.departamento_id}"`,`value="${p.departamento_id}" selected`)}</select>
+      <input value="${esc(p.email||'')}" placeholder="email" onchange="updPes(${p.id},'email',this.value)">
+      <button class="btn dan sm" onclick="delPes(${p.id})">🗑️</button></div>`).join('')
+    : '<div class="muted">Ainda não há pessoas registadas.</div>';
+}
+async function addDep(){
+  const nome=$('new-dep').value.trim(); if(!nome) return;
+  if(S.deps.some(d=>d.nome.toLowerCase()===nome.toLowerCase())){ toast('Esse departamento já existe.',true); return; }
+  try{ const n=await DB.insert('departamentos',{nome,ativo:true}); S.deps.push(n); S.deps.sort((a,b)=>a.nome.localeCompare(b.nome,'pt')); $('new-dep').value=''; renderAll(); toast('Departamento adicionado'); }
+  catch(e){ toast('Erro: '+e.message,true); }
+}
+async function renDep(id,el){
+  const nome=el.value.trim(); const d=S.deps.find(x=>x.id===id); if(!nome){ el.value=d.nome; return; }
+  try{ await DB.update('departamentos',id,{nome}); d.nome=nome; renderAll(); toast('Departamento renomeado'); }
+  catch(e){ el.value=d.nome; toast('Erro: '+e.message,true); }
+}
+async function delDep(id){
+  const n=S.topicos.filter(t=>t.departamento_origem_id===id||t.departamento_resp_id===id).length;
+  if(!confirm(n?`Este departamento está em ${n} tópico(s). Se o eliminar, esses tópicos ficam sem departamento. Continuar?`:'Eliminar este departamento?')) return;
+  try{
+    await DB.remove('departamentos',id);
+    if(!REMOTE){ // em Supabase o ON DELETE SET NULL trata disto
+      for(const t of S.topicos){ const p={}; if(t.departamento_origem_id===id) p.departamento_origem_id=null; if(t.departamento_resp_id===id) p.departamento_resp_id=null; if(Object.keys(p).length) await DB.update('topicos',t.id,p); }
+      for(const p of S.pessoas) if(p.departamento_id===id) await DB.update('pessoas',p.id,{departamento_id:null});
+    }
+    await loadAll(); toast('Departamento eliminado');
+  }catch(e){ toast('Erro: '+e.message,true); }
+}
+async function addPessoa(){
+  const nome=$('new-pes-nome').value.trim(); if(!nome){ toast('Indique o nome.',true); return; }
+  const row={nome, departamento_id:$('new-pes-dep').value?Number($('new-pes-dep').value):null, email:nz($('new-pes-email').value), ativo:true};
+  try{ const n=await DB.insert('pessoas',row); S.pessoas.push(n); S.pessoas.sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+    ['new-pes-nome','new-pes-email'].forEach(i=>$(i).value=''); renderAll(); toast('Pessoa adicionada'); }
+  catch(e){ toast('Erro: '+e.message,true); }
+}
+async function updPes(id,field,val){
+  const p=S.pessoas.find(x=>x.id===id); if(field!=='departamento_id') val=nz(val);
+  if(field==='nome' && !val){ renderConfig(); return; }
+  try{ await DB.update('pessoas',id,{[field]:val}); p[field]=val; fillSelects(); toast('Guardado'); }
+  catch(e){ toast('Erro: '+e.message,true); renderConfig(); }
+}
+async function delPes(id){
+  if(!confirm('Eliminar esta pessoa da lista? (Os tópicos onde aparece não são alterados.)')) return;
+  try{ await DB.remove('pessoas',id); S.pessoas=S.pessoas.filter(p=>p.id!==id); renderAll(); }
+  catch(e){ toast('Erro: '+e.message,true); }
+}
+
+
+/* =====================================================================
+   ATAS DE REUNIÃO
+   - reunioes: cabeçalho da ata
+   - reuniao_topicos: tópicos discutidos em cada reunião
+   - o "ponto de situação / decisão" de cada tópico é gravado como
+     observação (follow-up) do tópico, com reuniao_id preenchido
+   ===================================================================== */
+let ataCur=null, ataRows=[];
+const ATA_TITULO='Reunião interdepartamentos';
+
+function ataTag(rid){ if(!rid) return ''; const r=S.reunioes.find(x=>x.id===rid); return r?` <span class="ata-tag" onclick="event.stopPropagation();closeModal();openAta(${r.id})" title="Abrir ata">📋 ${esc(r.ref)}</span>`:''; }
+function ataTopCount(id){ return S.rt.filter(x=>x.reuniao_id===id).length; }
+
+/* ---- lista ---- */
+const ACOLS=[['ref','Ref.'],['data','Data'],['titulo','Título'],['local','Local'],['participantes','Participantes'],['n','Tópicos'],['proxima_data','Próxima reunião']];
+let asort={key:'data',dir:-1};
+function aVal(r,k){ return k==='n'?ataTopCount(r.id):(r[k]??''); }
+function renderAtas(){
+  const anos=[...new Set(S.reunioes.map(r=>(r.data||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  const sel=$('fa-ano'), v=sel.value; sel.innerHTML='<option value="">Todos os anos</option>'+anos.map(a=>`<option>${a}</option>`).join(''); sel.value=anos.includes(v)?v:'';
+  const q=$('fa-search').value.trim().toLowerCase(), ano=sel.value;
+  const rows=S.reunioes.filter(r=>{
+    if(ano && !(r.data||'').startsWith(ano)) return false;
+    if(q){ const tops=S.rt.filter(x=>x.reuniao_id===r.id).map(x=>{const t=S.topicos.find(t=>t.id===x.topico_id);return t?t.ref+' '+t.titulo:'';});
+      const hay=[r.ref,r.titulo,r.local,r.participantes,r.notas,...tops,...S.obs.filter(o=>o.reuniao_id===r.id).map(o=>o.texto)].join(' ').toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>{ const va=aVal(a,asort.key), vb=aVal(b,asort.key);
+    return (typeof va==='number'?va-vb:String(va).localeCompare(String(vb),'pt',{numeric:true}))*asort.dir; });
+  $('fa-count').textContent=rows.length+' de '+S.reunioes.length+' atas';
+  $('atas-head').innerHTML=ACOLS.map(([k,l])=>`<th onclick="setASort('${k}')">${l}${asort.key===k?`<span class="arr">${asort.dir>0?'▲':'▼'}</span>`:''}</th>`).join('');
+  $('atas-body').innerHTML=rows.length?rows.map(r=>`<tr class="click" onclick="openAta(${r.id})">
+    <td><b>${esc(r.ref)}</b></td><td>${fmt(r.data)}</td><td class="trunc">${esc(r.titulo||'')}</td><td>${esc(r.local||'')}</td>
+    <td class="trunc muted" title="${esc(r.participantes||'')}">${esc(r.participantes||'')}</td><td>${ataTopCount(r.id)}</td><td>${fmt(r.proxima_data)}</td></tr>`).join('')
+    : `<tr><td colspan="${ACOLS.length}" class="empty">Ainda não há atas. Clique em "+ Nova ata".</td></tr>`;
+}
+function setASort(k){ asort = asort.key===k?{key:k,dir:-asort.dir}:{key:k,dir:1}; renderAtas(); }
+$('fa-search').addEventListener('input',renderAtas); $('fa-ano').addEventListener('change',renderAtas);
+
+/* ---- modal ---- */
+function openAta(id){
+  ataCur = id ? S.reunioes.find(r=>r.id===id) : null;
+  const r = ataCur || {data:today(), titulo:ATA_TITULO};
+  $('a-title').textContent = ataCur ? ataCur.ref+' — Ata de reunião' : 'Nova ata';
+  $('a-data').value=r.data||''; $('a-titulo').value=r.titulo||''; $('a-local').value=r.local||'';
+  $('a-proxima').value=r.proxima_data||''; $('a-notas').value=r.notas||'';
+  // participantes: os que existem em Pessoas ficam como chips, os restantes em "Outros"
+  const nomes=(r.participantes||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const conhecidos=S.pessoas.map(p=>p.nome);
+  $('a-part').innerHTML = S.pessoas.length ? S.pessoas.map(p=>{ const on=nomes.includes(p.nome);
+      return `<label class="chip${on?' on':''}"><input type="checkbox" value="${esc(p.nome)}"${on?' checked':''} onchange="this.parentNode.classList.toggle('on',this.checked)">${esc(p.nome)}${p.departamento_id?` <span class="muted" style="font-size:11px">${esc(depName(p.departamento_id))}</span>`:''}</label>`;}).join('')
+    : '<span class="muted" style="font-size:12px">Registe pessoas em Configurações para as poder marcar aqui.</span>';
+  $('a-outros').value = nomes.filter(n=>!conhecidos.includes(n)).join(', ');
+  ataRows = ataCur ? S.rt.filter(x=>x.reuniao_id===ataCur.id).sort((a,b)=>a.id-b.id).map(x=>{
+      const t=S.topicos.find(t=>t.id===x.topico_id); if(!t) return null;
+      const o=S.obs.find(o=>o.reuniao_id===ataCur.id && o.topico_id===t.id);
+      return {topico_id:t.id, estado:t.estado, data_fim:t.data_fim||'', texto:o?o.texto:'', obs_id:o?o.id:null}; }).filter(Boolean) : [];
+  $('a-del').style.display = ataCur ? '' : 'none';
+  renderAtaRows();
+  $('modal-ata').classList.add('show');
+}
+function closeAta(){ $('modal-ata').classList.remove('show'); ataCur=null; ataRows=[]; }
+
+function renderAtaRows(){
+  const inc=ataRows.map(r=>r.topico_id).filter(Boolean);
+  const disp=S.topicos.filter(t=>!inc.includes(t.id)).sort((a,b)=>(a.estado==='Fechado')-(b.estado==='Fechado')||String(a.ref).localeCompare(String(b.ref)));
+  $('a-add-sel').innerHTML='<option value="">Escolher tópico existente…</option>'+disp.map(t=>`<option value="${t.id}">${esc(t.ref)} · ${esc(t.titulo)}${t.estado==='Fechado'?' (fechado)':''}</option>`).join('');
+  const estOpts=v=>['Aberto','Em curso','Fechado'].map(e=>`<option${e===v?' selected':''}>${e}</option>`).join('');
+  $('a-tops').innerHTML = ataRows.length ? ataRows.map((r,i)=>{
+    const t=r.topico_id?S.topicos.find(x=>x.id===r.topico_id):null;
+    const head = t ? `<span class="t"><b>${esc(t.ref)}</b> · ${esc(t.titulo)} <span class="muted" style="font-size:12px">— ${esc(t.responsavel||'sem responsável')}${t.departamento_resp_id?' ('+esc(depName(t.departamento_resp_id))+')':''}</span></span>`
+                   : `<span class="t"><b>Novo tópico</b> <span class="muted" style="font-size:12px">(criado ao guardar a ata)</span></span>`;
+    const novo = t ? '' : `<div class="gnovo">
+        <input placeholder="Assunto do novo tópico *" value="${esc(r.titulo||'')}" oninput="ataRows[${i}].titulo=this.value">
+        <input placeholder="Quem executa" list="dl-pessoas" value="${esc(r.responsavel||'')}" oninput="ataRows[${i}].responsavel=this.value">
+        <select onchange="ataRows[${i}].dep=this.value">${depOptions('Dep. responsável…').replace(`value="${r.dep}"`,`value="${r.dep}" selected`)}</select></div>`;
+    return `<div class="ata-top${t?'':' novo'}"><div class="hd">${head}<button class="btn sm dan" onclick="ataRemove(${i})" title="Retirar da ata">✕</button></div>${novo}
+      <div class="grid">
+        <label class="lbl" style="display:flex;flex-direction:column;gap:3px">Estado<select onchange="ataRows[${i}].estado=this.value">${estOpts(r.estado)}</select></label>
+        <label class="lbl" style="display:flex;flex-direction:column;gap:3px">Data de fim<input type="date" value="${r.data_fim||''}" onchange="ataRows[${i}].data_fim=this.value"></label>
+        <label class="lbl" style="display:flex;flex-direction:column;gap:3px">Ponto de situação / decisão<textarea rows="2" oninput="ataRows[${i}].texto=this.value">${esc(r.texto||'')}</textarea></label>
+      </div>${t?ataPrevObs(t.id):''}</div>`;}).join('')
+    : '<div class="muted" style="padding:6px 0">Nenhum tópico na ata. Use "⬇ Todos os ativos" para carregar a ordem de trabalhos.</div>';
+}
+function ataPrevObs(tid){ // último follow-up anterior (fora desta ata), para contexto
+  const o=obsOf(tid).find(o=>!ataCur || o.reuniao_id!==ataCur.id);
+  return o?`<div class="muted" style="font-size:12px;margin-top:6px">Último ponto anterior: <b>${fmt(o.data)}</b> — ${esc(o.texto)}</div>`:'';
+}
+function ataRowFromTopic(t){ return {topico_id:t.id, estado:t.estado, data_fim:t.data_fim||'', texto:'', obs_id:null}; }
+function ataAddSel(){ const id=Number($('a-add-sel').value); if(!id) return; const t=S.topicos.find(x=>x.id===id); ataRows.push(ataRowFromTopic(t)); renderAtaRows(); }
+function ataAddAtivos(){
+  const inc=ataRows.map(r=>r.topico_id); const add=S.topicos.filter(t=>t.estado!=='Fechado' && !inc.includes(t.id)).sort((a,b)=>String(a.ref).localeCompare(String(b.ref)));
+  if(!add.length){ toast('Todos os tópicos ativos já estão na ata.'); return; }
+  add.forEach(t=>ataRows.push(ataRowFromTopic(t))); renderAtaRows(); toast(add.length+' tópico(s) adicionados');
+}
+function ataAddNovo(){ ataRows.push({topico_id:null, titulo:'', responsavel:'', dep:'', estado:'Aberto', data_fim:'', texto:'', obs_id:null}); renderAtaRows();
+  const els=document.querySelectorAll('#a-tops .gnovo input'); if(els.length) els[els.length-2].focus(); }
+function ataRemove(i){
+  const r=ataRows[i];
+  if((r.texto||'').trim() && !confirm('Retirar este tópico da ata? O ponto de situação escrito para esta reunião será apagado.')) return;
+  ataRows.splice(i,1); renderAtaRows();
+}
+function ataParticipantes(){
+  const chk=[...document.querySelectorAll('#a-part input:checked')].map(x=>x.value);
+  const outros=$('a-outros').value.split(',').map(x=>x.trim()).filter(Boolean);
+  return [...new Set([...chk,...outros])];
+}
+
+async function saveAta(){
+  const data=$('a-data').value; if(!data){ toast('Indique a data da reunião.',true); $('a-data').focus(); return; }
+  const semTitulo=ataRows.find(r=>!r.topico_id && !(r.titulo||'').trim());
+  if(semTitulo){ toast('Há um tópico novo sem assunto.',true); return; }
+  const head={data, titulo:nz($('a-titulo').value), local:nz($('a-local').value), participantes:nz(ataParticipantes().join(', ')),
+              proxima_data:nz($('a-proxima').value), notas:nz($('a-notas').value), updated_at:new Date().toISOString()};
+  try{
+    let reu;
+    if(ataCur) reu=await DB.update('reunioes',ataCur.id,head);
+    else { reu=await DB.insert('reunioes',{...head,ref:nextRef('ATA',S.reunioes)}); S.reunioes.push(reu); }
+    const rid=reu.id;
+    // tópicos retirados da ata
+    const keep=ataRows.map(r=>r.topico_id).filter(Boolean);
+    for(const x of S.rt.filter(x=>x.reuniao_id===rid && !keep.includes(x.topico_id))){
+      await DB.remove('reuniao_topicos',x.id);
+      const o=S.obs.find(o=>o.reuniao_id===rid && o.topico_id===x.topico_id); if(o) await DB.remove('observacoes',o.id);
+    }
+    for(const r of ataRows){
+      let t;
+      if(!r.topico_id){ // novo tópico criado na reunião
+        t=await DB.insert('topicos',{ref:nextRef(), titulo:r.titulo.trim(), responsavel:nz(r.responsavel), departamento_resp_id:r.dep?Number(r.dep):null,
+          estado:r.estado, prioridade:'Média', data_inicio:data, data_fim:nz(r.data_fim)||(r.estado==='Fechado'?data:null), updated_at:new Date().toISOString()});
+        S.topicos.push(t); r.topico_id=t.id;
+      } else {
+        t=S.topicos.find(x=>x.id===r.topico_id);
+        const patch={};
+        if(r.estado!==t.estado) patch.estado=r.estado;
+        const fim=nz(r.data_fim)||(r.estado==='Fechado'?(t.data_fim||data):null);
+        if((fim||null)!==(t.data_fim||null)) patch.data_fim=fim;
+        if(Object.keys(patch).length){ patch.updated_at=new Date().toISOString(); Object.assign(t, await DB.update('topicos',t.id,patch)||patch); }
+      }
+      if(!S.rt.some(x=>x.reuniao_id===rid && x.topico_id===r.topico_id)){ const n=await DB.insert('reuniao_topicos',{reuniao_id:rid,topico_id:r.topico_id}); S.rt.push(n); }
+      const txt=(r.texto||'').trim();
+      const o=S.obs.find(o=>o.reuniao_id===rid && o.topico_id===r.topico_id);
+      if(txt && o){ if(o.texto!==txt || o.data!==data) await DB.update('observacoes',o.id,{texto:txt,data}); }
+      else if(txt){ await DB.insert('observacoes',{topico_id:r.topico_id,reuniao_id:rid,data,autor:null,texto:txt}); }
+      else if(o){ await DB.remove('observacoes',o.id); }
+    }
+    toast(ataCur?'Ata atualizada':'Ata '+reu.ref+' criada');
+    closeAta(); await loadAll();
+  }catch(e){ toast('Erro ao guardar a ata: '+e.message,true); console.error(e); await loadAll(); }
+}
+async function deleteAta(){
+  if(!ataCur) return;
+  if(!confirm(`Eliminar a ata ${ataCur.ref}?\nOs pontos de situação registados continuam nos tópicos, mas deixam de estar ligados a esta ata.\nEsta ação não pode ser anulada.`)) return;
+  try{
+    await DB.updateWhere('observacoes','reuniao_id',ataCur.id,{reuniao_id:null});
+    await DB.removeWhere('reuniao_topicos','reuniao_id',ataCur.id);
+    await DB.remove('reunioes',ataCur.id);
+    closeAta(); await loadAll(); toast('Ata eliminada');
+  }catch(e){ toast('Erro: '+e.message,true); }
+}
+
+/* ---- impressão / email (usa o que está no formulário) ---- */
+function ataSnapshot(){
+  return {ref:ataCur?ataCur.ref:'(por gravar)', data:$('a-data').value, titulo:$('a-titulo').value, local:$('a-local').value,
+    part:ataParticipantes(), proxima:$('a-proxima').value, notas:$('a-notas').value,
+    rows:ataRows.map(r=>{ const t=r.topico_id?S.topicos.find(x=>x.id===r.topico_id):null;
+      return {ref:t?t.ref:'Novo', titulo:t?t.titulo:r.titulo, resp:t?t.responsavel:r.responsavel,
+              dep:depName(t?t.departamento_resp_id:r.dep), estado:r.estado, fim:r.data_fim, texto:r.texto}; })};
+}
+function printAta(){
+  const a=ataSnapshot();
+  doPrint(`<h1>Ata de reunião — ${esc(a.ref)}</h1><div style="margin-bottom:10px">${esc(a.titulo||ATA_TITULO)}</div>
+  <table><tr><th style="width:120px">Data</th><td>${fmt(a.data)}</td><th style="width:120px">Local</th><td>${esc(a.local)}</td></tr>
+  <tr><th>Participantes</th><td colspan="3">${esc(a.part.join(', '))}</td></tr>
+  ${a.notas?`<tr><th>Notas gerais</th><td colspan="3" style="white-space:pre-wrap">${esc(a.notas)}</td></tr>`:''}</table>
+  <h3 style="margin-top:16px">Tópicos discutidos</h3>
+  <table><tr><th style="width:95px;white-space:nowrap">Ref.</th><th style="width:22%">Tópico</th><th style="width:15%">Responsável</th><th style="width:70px">Estado</th><th style="width:75px">Data fim</th><th>Ponto de situação / decisão</th></tr>
+  ${a.rows.map(r=>`<tr><td style="white-space:nowrap">${esc(r.ref)}</td><td>${esc(r.titulo)}</td><td>${esc(r.resp||'')}${r.dep?'<br><small>'+esc(r.dep)+'</small>':''}</td><td>${esc(r.estado)}</td><td>${fmt(r.fim)}</td><td style="white-space:pre-wrap">${esc(r.texto||'')}</td></tr>`).join('')
+   || '<tr><td colspan="6">Sem tópicos.</td></tr>'}</table>
+  ${a.proxima?`<p style="margin-top:14px"><b>Próxima reunião:</b> ${fmt(a.proxima)}</p>`:''}`);
+}
+function mailAta(){
+  const a=ataSnapshot();
+  const emails=a.part.map(n=>(S.pessoas.find(p=>p.nome===n)||{}).email).filter(Boolean);
+  const body=[`Ata ${a.ref} — ${a.titulo||ATA_TITULO}`,`Data: ${fmt(a.data)}${a.local?'   Local: '+a.local:''}`,`Participantes: ${a.part.join(', ')}`,
+    a.notas?`\nNotas gerais: ${a.notas}`:'','\nTÓPICOS DISCUTIDOS',
+    ...a.rows.map(r=>`\n• ${r.ref} — ${r.titulo}\n  Responsável: ${r.resp||'-'}${r.dep?' ('+r.dep+')':''} | Estado: ${r.estado}${r.fim?' | Data fim: '+fmt(r.fim):''}\n  ${r.texto||'(sem registo)'}`),
+    a.proxima?`\nPróxima reunião: ${fmt(a.proxima)}`:''].join('\n');
+  location.href=`mailto:${emails.map(encodeURIComponent).join(',')}?subject=${encodeURIComponent('Ata '+a.ref+' — '+fmt(a.data))}&body=${encodeURIComponent(body)}`;
+}
+
+/* ---------------- Arranque ---------------- */
+$('mode-badge').innerHTML = REMOTE ? '🟢 Ligado ao <b>Supabase</b>' : '🟡 <b>Modo local</b><br>dados só neste browser';
+loadAll();
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW:',e));
+</script>
+</body>
+</html>
